@@ -13,25 +13,31 @@ app.get('/resolve', async (req, res) => {
   try {
     const response = await axios.get(url, {
       headers: {
-        // Some websites require a user-agent header
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
       }
     });
 
     const $ = cheerio.load(response.data);
-    const videoUrl = $('video source').attr('src');
+
+    // Try both .mp4 and .m3u8
+    let videoUrl = $('video source[src$=".mp4"]').attr('src');
+
+    if (!videoUrl) {
+      // Try to find m3u8 source
+      videoUrl = $('video source[src$=".m3u8"]').attr('src');
+    }
 
     if (videoUrl) {
       return res.redirect(302, videoUrl);
     } else {
-      return res.status(404).send('Video source not found');
+      return res.status(404).send('No .mp4 or .m3u8 video source found.');
     }
   } catch (err) {
-    return res.status(500).send('Error fetching or resolving the URL');
+    return res.status(500).send('Error resolving video URL.');
   }
 });
 
-// Optional: Keep your public folder in case you want a GUI
+// Keep this if you're serving HTML frontend
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
