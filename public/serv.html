@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Video Resolver</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+      padding: 30px;
+    }
+    video {
+      width: 100%;
+      max-width: 800px;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Resolved Video</h1>
+  <div id="loading">Loading video...</div>
+  <video id="videoPlayer" controls style="display:none;">
+    <source id="videoSource" src="" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <script>
+    async function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    async function resolveUrl() {
+      const inputUrl = await getQueryParam('url');
+      if (!inputUrl) {
+        document.getElementById('loading').innerText = 'No URL provided.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/resolve?url=${encodeURIComponent(inputUrl)}`);
+        const data = await res.json();
+
+        if (data.resolvedUrl) {
+          const video = document.getElementById('videoPlayer');
+          const source = document.getElementById('videoSource');
+          source.src = data.resolvedUrl;
+          video.load();
+          video.style.display = 'block';
+          document.getElementById('loading').style.display = 'none';
+        } else {
+          document.getElementById('loading').innerText = 'Could not resolve video.';
+        }
+      } catch (e) {
+        document.getElementById('loading').innerText = 'Error fetching video.';
+      }
+    }
+
+    resolveUrl();
+  </script>
+</body>
+</html>
