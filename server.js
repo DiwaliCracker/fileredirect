@@ -6,27 +6,33 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-app.get('/api/resolve', async (req, res) => {
+app.get('/resolve', async (req, res) => {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: 'Missing url parameter' });
+  if (!url) return res.status(400).send('Missing URL');
 
   try {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
+    const response = await axios.get(url, {
+      headers: {
+        // Some websites require a user-agent header
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
 
-    // Look for the video source tag
-    const videoSrc = $('video source').attr('src');
-    if (videoSrc) {
-      res.json({ resolvedUrl: videoSrc });
+    const $ = cheerio.load(response.data);
+    const videoUrl = $('video source').attr('src');
+
+    if (videoUrl) {
+      return res.redirect(302, videoUrl);
     } else {
-      res.status(404).json({ error: 'Video source not found' });
+      return res.status(404).send('Video source not found');
     }
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch or parse URL' });
+    return res.status(500).send('Error fetching or resolving the URL');
   }
 });
 
-app.use(express.static('public')); // to serve demo.html
+// Optional: Keep your public folder in case you want a GUI
+app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
